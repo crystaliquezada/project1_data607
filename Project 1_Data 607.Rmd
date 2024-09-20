@@ -1,0 +1,85 @@
+---
+title: "Project 1_Data 607"
+author: "Crystal Quezada"
+date: "2024-09-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(stringr)
+library(readr)
+```
+
+First, we must import the txt file into RStudio. We can remove the first few lines to start cleaning up the data.
+
+```{r read txt}
+rawchessdata <- readLines("tournamentinfo.txt")
+rawchessdata <- rawchessdata[-(1:4)]
+lines <- length(rawchessdata)
+head(rawchessdata)
+```
+
+```{r rows_per_player}
+num_players <- length(rawchessdata) / 3
+lines_per_player <- 3
+```
+
+```{r variable values}
+ID <- integer(num_players)
+Name <- character(num_players)
+State <- character(num_players)
+Points <- numeric(num_players)
+Rating <- numeric(num_players)
+Average <- numeric(num_players)
+Rounds <- numeric(8)
+```
+
+I can't seem to loop it back to calculate the first's person's average.
+
+```{r assign}
+opponent_ratings_list <- vector("list", num_players)
+
+for (i in seq_len(num_players)) {
+  start_idx <- (i - 1) * lines_per_player + 1
+  player_data <- rawchessdata[start_idx:(start_idx + lines_per_player - 1)]
+  ID[i] <- as.integer(str_extract(player_data[2], "\\d+"))
+  Name[i] <- str_squish(str_replace_all(str_extract(player_data[1], "\\|.*?\\|"), "\\|", ""))
+  Points[i] <- as.numeric(str_extract(player_data[1], "\\d+\\.\\d+"))
+  State[i] <- str_extract(player_data[2], "\\b[A-Z]{2}\\b")
+  Rating[i] <- as.numeric(str_extract(player_data[2], "(?<=R:\\s?)\\d{3,4}"))
+  opponent_ids <- as.numeric(str_extract_all(player_data[2], "\\d+")[[1]])
+  
+  if (length(opponent_ids) > 0) {
+    opponent_ratings <- Rating[opponent_ids]
+    Average[i] <- round(mean(opponent_ratings, na.rm = TRUE), digits = 0)
+  } else {
+    Average[i] <- NA
+  }
+}
+```
+
+```{r dataframe}
+chess_data <- data.frame(
+  ID,
+  Name,
+  State,
+  Points,
+  Rating,
+  Average,
+  stringsAsFactors = FALSE
+)
+```
+
+```{r clean}
+clean_chess_data <- chess_data %>% 
+  select(Name, State, Points, Rating, Average) %>% 
+  drop_na()
+
+print(clean_chess_data)
+```
+
+
+
+
